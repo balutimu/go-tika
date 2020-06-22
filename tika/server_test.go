@@ -273,3 +273,50 @@ func TestAddJavaProps(t *testing.T) {
 		t.Errorf("Start got error: %v", err)
 	}
 }
+
+func TestAddCustomProps(t *testing.T) {
+	oldCommand := command
+	defer func() { command = oldCommand }()
+
+	path, err := os.Executable() // Use the text executable path as a dummy jar.
+	if err != nil {
+		t.Skip("cannot find current test executable")
+	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "1.14")
+	}))
+	defer ts.Close()
+	tsURL, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("error creating test server: %v", err)
+	}
+
+	s, err := NewServer(path, tsURL.Port())
+	if err != nil {
+		t.Fatalf("NewServer got error: %v", err)
+	}
+
+	wantKey := "java.io.tmpdir"
+	wantVal := "/tmp/stuff"
+	s.JavaProps[wantKey] = wantVal
+
+	command = func(c string, args ...string) *exec.Cmd {
+		found := false
+		want := fmt.Sprintf("-D%s=%q", wantKey, wantVal)
+		for _, arg := range args {
+			if arg == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("NewServer got %v %v args, want to contain %s", c, args, want)
+		}
+		return oldCommand(c, args...)
+	}
+
+	s.CustomProp = []string{"-enableUnsecureFeatures", "-enableFileUrl"}
+
+	if err := s.Start(context.Background()); err != nil {
+		t.Errorf("Start got error: %v", err)
+	}
+}

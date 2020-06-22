@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context/ctxhttp"
@@ -39,12 +40,13 @@ import (
 // startup by adding to the JavaProps map
 
 type Server struct {
-	jar       string
-	url       string // url is derived from port.
-	port      string
-	cmd       *exec.Cmd
-	child     *ChildOptions
-	JavaProps map[string]string
+	jar        string
+	url        string // url is derived from port.
+	port       string
+	cmd        *exec.Cmd
+	child      *ChildOptions
+	JavaProps  map[string]string
+	CustomProp []string
 }
 
 // ChildOptions represent command line parameters that can be used when Tika is run with the -spawnChild option.
@@ -102,10 +104,11 @@ func NewServer(jar, port string) (*Server, error) {
 	}
 
 	s := &Server{
-		jar:       jar,
-		port:      port,
-		url:       u.String(),
-		JavaProps: map[string]string{},
+		jar:        jar,
+		port:       port,
+		url:        u.String(),
+		JavaProps:  map[string]string{},
+		CustomProp: []string{},
 	}
 
 	return s, nil
@@ -140,6 +143,9 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	args := append(append(props, "-jar", s.jar, "-p", s.port), s.child.args()...)
+	if len(s.CustomProp) > 0 {
+		args = append(args, strings.Join(s.CustomProp, " "))
+	}
 	cmd := command("java", args...)
 
 	if err := cmd.Start(); err != nil {
