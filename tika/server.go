@@ -41,12 +41,13 @@ import (
 // startup by adding to the JavaProps map
 
 type Server struct {
-	jar       string
-	url       string // url is derived from port.
-	port      string
-	cmd       *exec.Cmd
-	child     *ChildOptions
-	JavaProps map[string]string
+	jar         string
+	url         string // url is derived from port.
+	port        string
+	cmd         *exec.Cmd
+	child       *ChildOptions
+	JavaProps   map[string]string
+	ServerProps []string
 }
 
 // ChildOptions represent command line parameters that can be used when Tika is run with the -spawnChild option.
@@ -141,7 +142,11 @@ func (s *Server) Start(ctx context.Context) error {
 		props = append(props, fmt.Sprintf("-D%s=%q", k, v))
 	}
 
-	cmd := command("java", append([]string{"-jar", s.jar, "-p", s.port, "-enableUnsecureFeatures", "-enableFileUrl"}, s.child.args()...)...)
+	serverProps := []string{}
+	for _, v := range s.ServerProps {
+		serverProps = append(serverProps, v)
+	}
+	cmd := command("java", append(append([]string{"-jar", s.jar, "-p", s.port}, serverProps...), s.child.args()...)...)
 
 	//args := append(append(append(props, "-jar", s.jar, "-p", s.port), s.customProps.args()...), s.child.args()...)
 
