@@ -21,12 +21,10 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
-	"sync"
 	"time"
 
 	"golang.org/x/net/context/ctxhttp"
@@ -146,54 +144,13 @@ func (s *Server) Start(ctx context.Context) error {
 	for _, v := range s.ServerProps {
 		serverProps = append(serverProps, v)
 	}
-	cmd := command("java", append(append([]string{"-jar", s.jar, "-p", s.port}, serverProps...), s.child.args()...)...)
-
-	//args := append(append(append(props, "-jar", s.jar, "-p", s.port), s.customProps.args()...), s.child.args()...)
-
-	//fmt.Print(args)
-
-	//	cmd := exec.Command("java", args...)
-
-	fmt.Print(cmd.String())
-	var stdout, stderr []byte
-	var errStdout, errStderr error
-	stdoutIn, _ := cmd.StdoutPipe()
-	stderrIn, _ := cmd.StderrPipe()
+	args := append(append([]string{"-jar", s.jar, "-p", s.port}, serverProps...), s.child.args()...)
+	cmd := exec.Command("java", args...)
 
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		stdout, errStdout = copyAndCapture(os.Stdout, stdoutIn)
-		wg.Done()
-	}()
 
-	stderr, errStderr = copyAndCapture(os.Stderr, stderrIn)
-
-	wg.Wait()
-
-	err := cmd.Wait()
-	if err != nil {
-		log.Fatalf("cmd.Run() failed with %s\n", err)
-	}
-	if errStdout != nil || errStderr != nil {
-		log.Fatal("failed to capture stdout or stderr\n")
-	}
-	outStr, errStr := string(stdout), string(stderr)
-	fmt.Printf("\nout:\n%s\nerr:\n%s\n", outStr, errStr)
-
-	s.cmd = cmd
-
-	if err := s.waitForStart(ctx); err != nil {
-		out, readErr := cmd.CombinedOutput()
-		if readErr != nil {
-			return fmt.Errorf("error reading output: %v", readErr)
-		}
-		// Report stderr since sometimes the server says why it failed to start.
-		return fmt.Errorf("error starting server: %v\nserver stderr:\n\n%s", err, out)
-	}
 	return nil
 }
 
@@ -334,27 +291,4 @@ func DownloadServer(ctx context.Context, v Version, path string) error {
 		return fmt.Errorf("invalid sha512: %s", h)
 	}
 	return nil
-}
-
-func copyAndCapture(w io.Writer, r io.Reader) ([]byte, error) {
-	var out []byte
-	buf := make([]byte, 1024, 1024)
-	for {
-		n, err := r.Read(buf[:])
-		if n > 0 {
-			d := buf[:n]
-			out = append(out, d...)
-			_, err := w.Write(d)
-			if err != nil {
-				return out, err
-			}
-		}
-		if err != nil {
-			// Read returns io.EOF at the end of file, which is not an error for us
-			if err == io.EOF {
-				err = nil
-			}
-			return out, err
-		}
-	}
 }

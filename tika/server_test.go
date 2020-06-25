@@ -314,7 +314,7 @@ func TestAddCustomProps(t *testing.T) {
 		return oldCommand(c, args...)
 	}
 
-	s.CustomProp = []string{"-enableUnsecureFeatures", "-enableFileUrl"}
+	s.ServerProps = []string{"-enableUnsecureFeatures", "-enableFileUrl"}
 
 	if err := s.Start(context.Background()); err != nil {
 		t.Errorf("Start got error: %v", err)
