@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -42,13 +41,12 @@ import (
 // startup by adding to the JavaProps map
 
 type Server struct {
-	jar        string
-	url        string // url is derived from port.
-	port       string
-	cmd        *exec.Cmd
-	child      *ChildOptions
-	JavaProps  map[string]string
-	CustomProp []string
+	jar       string
+	url       string // url is derived from port.
+	port      string
+	cmd       *exec.Cmd
+	child     *ChildOptions
+	JavaProps map[string]string
 }
 
 // ChildOptions represent command line parameters that can be used when Tika is run with the -spawnChild option.
@@ -106,11 +104,10 @@ func NewServer(jar, port string) (*Server, error) {
 	}
 
 	s := &Server{
-		jar:        jar,
-		port:       port,
-		url:        u.String(),
-		JavaProps:  map[string]string{},
-		CustomProp: []string{},
+		jar:       jar,
+		port:      port,
+		url:       u.String(),
+		JavaProps: map[string]string{},
 	}
 
 	return s, nil
@@ -134,23 +131,23 @@ var command = exec.Command
 // Server. Start will wait for the server to be available or until ctx is
 // cancelled.
 func (s *Server) Start(ctx context.Context) error {
+
 	if _, err := os.Stat(s.jar); os.IsNotExist(err) {
 		return err
 	}
-
 	// Create a slice of Java system properties to be passed to the JVM.
 	props := []string{}
 	for k, v := range s.JavaProps {
 		props = append(props, fmt.Sprintf("-D%s=%q", k, v))
 	}
 
-	args := append(append(props, "-jar", s.jar, "-p", s.port), s.child.args()...)
-	if len(s.CustomProp) > 0 {
-		args = append(args, strings.Join(s.CustomProp, " "))
-	}
-	fmt.Print(args)
+	cmd := command("java", append([]string{"-jar", s.jar, "-p", s.port, "-enableUnsecureFeatures", "-enableFileUrl"}, s.child.args()...)...)
 
-	cmd := exec.Command("java", args...)
+	//args := append(append(append(props, "-jar", s.jar, "-p", s.port), s.customProps.args()...), s.child.args()...)
+
+	//fmt.Print(args)
+
+	//	cmd := exec.Command("java", args...)
 
 	fmt.Print(cmd.String())
 	var stdout, stderr []byte
