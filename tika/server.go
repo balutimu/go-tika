@@ -141,7 +141,7 @@ func (s *Server) Start(ctx context.Context) error {
 		props = append(props, fmt.Sprintf("-D%s=%q", k, v))
 	}
 
-	cmd := command("java", append([]string{"-jar", s.jar, "-p", s.port, "-enableUnsecureFeatures -enableFileUrl"}, s.child.args()...)...)
+	cmd := command("java", append([]string{"-jar", s.jar, "-p", s.port, "-enableUnsecureFeatures", "-enableFileUrl"}, s.child.args()...)...)
 
 	//args := append(append(append(props, "-jar", s.jar, "-p", s.port), s.customProps.args()...), s.child.args()...)
 
