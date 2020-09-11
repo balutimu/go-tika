@@ -107,7 +107,7 @@ func (c *Client) call(ctx context.Context, input io.Reader, method, path string,
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("response code %v", resp.StatusCode)
+		return nil, fmt.Errorf("response code %v --- %v", resp.StatusCode, err)
 	}
 	return ioutil.ReadAll(resp.Body)
 }
